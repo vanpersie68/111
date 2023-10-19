@@ -40,6 +40,7 @@ urlpatterns = [
     path('account/', include('account.urls')),
     path('survey/', include('survey.urls')),
    # path('status/', django_core.views.status),
+    path('emailInfo/', include('emailInfo.urls')),
     path('api/st/', include('surveytaker.urls')),
     *static('/static', document_root=os.path.join(BASE_DIR, 'static/static')),
     *static('/upload', document_root=os.path.join(BASE_DIR, 'static/upload')),
