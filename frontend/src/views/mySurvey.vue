@@ -40,6 +40,16 @@
       </el-select>
       <el-switch v-model="listType" :active-text="$t('g5.Card')" :inactive-text="$t('g5.List')">
       </el-switch>
+      <div v-if="this.emails.length > 0">
+          <br /><br />
+          <el-alert
+            title="You have an invitation email pending, please check it!"
+            type="info"
+            class="custom-alert"
+            show-icon
+            close-text=""
+          ></el-alert>
+      </div>
       <br /><br />
       <a @click="createSurvey" class="action-btn">{{ $t('g5.ms-create') }}</a>
       <label for="file-btn" class="action-btn">{{
@@ -659,6 +669,7 @@ export default {
         zh: '中文',
       },
       isLoading: false,
+      emails: []
     }
   },
   watch: {
@@ -775,7 +786,7 @@ export default {
       });
     },
     removeCollaborator(surveyid, userId){
-        const confirmed = confirm('Are you sure you want to remove yourself from collaborators?');
+        const confirmed = confirm('Are you sure you want to remove yourself from collaboration?');
         if (confirmed){
             this.$axios
                 .post('survey/collaborators/delete/', {survey_id: surveyid,
@@ -1316,6 +1327,15 @@ export default {
         this.userId = res.data.pk
       })
     await this.getSurveys()
+
+    await this.$axios
+    .get('emailInfo/get_emails/' + this.userId)
+    .then((response) => {
+        this.emails = response.data
+    })
+    .catch((error) => {
+        // Handle error
+    });
   },
 }
 </script>
@@ -1537,6 +1557,10 @@ export default {
 .card-btns {
   height: 155px;
   overflow-y: auto;
+}
+
+.custom-alert {
+  color: red; /* Set the text color to red */
 }
 
 .spinner {
