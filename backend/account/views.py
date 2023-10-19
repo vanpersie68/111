@@ -20,7 +20,9 @@ from django.shortcuts import render
 from django.core.validators import EmailValidator
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
+from surveybuilder.models import Survey
 from rest_framework.authtoken.models import Token
+from emailInfo.views import add_email_info
 
 @swagger_auto_schema(
     request_body=openapi.Schema(
@@ -182,19 +184,37 @@ def send_invite(request):
             # 创建邮件内容
             # '<a href="https://yourwebsite.com/accept-invitation?token={}">Accept Invitation</a>\n\n'\
 
-            user = User.objects.get(email=email)
-            token = Token.objects.get(user=user)
-            # token = check_email_registered(email)
+
+            try:
+                user = User.objects.get(email=email)
+                token = Token.objects.get(user=user)
+            except User.DoesNotExist:
+                token = None
+            except Token.DoesNotExist:
+                token = None
+            # user = User.objects.get(email=email)
+            # token = Token.objects.get(user=user)
+
+            sender = User.objects.get(username=request.data.get('username'))
+            survey = Survey.objects.get(id=request.data.get('surveyid'))
+
+            if token is not None:
+                email_id = add_email_info(sender, user, survey)
+            else:
+                email_id = add_email_info(sender, None, survey)
+
+
             subject = 'Please confirm this invitation'
             message = 'User {} has invited you to collaborate on a survey - {}\n\n' \
                       'To accept this invitation, please click the following link:\n\n' \
-                      '{}accept-invitation?key={}&id={}\n\n' \
+                      '{}accept-invitation?key={}&id={}&email={}\n\n' \
                       'Note: This invitation was intended for {}. If you were not ' \
                       'expecting this invitation, you can ignore this email.\n'.format(request.data.get('username'),
                                                                                        request.data.get('surveyname'),
                                                                                        request.data.get('websiteUrl'),
                                                                                        token,
                                                                                        request.data.get('surveyid'),
+                                                                                       email_id,
                                                                                        email, )
             msg = MIMEMultipart()
             msg['From'] = sender_email
@@ -207,6 +227,7 @@ def send_invite(request):
                 server.starttls()
                 server.login(smtp_username, smtp_password)
                 server.sendmail(sender_email, recipient_email, msg.as_string())
+
                 return Response({'message': 'Invitation sent successfully'})
             except Exception as e:
                 return Response({'message': f'Email could not be sent. Error: {str(e)}'})
