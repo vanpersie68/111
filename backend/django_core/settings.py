@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'channels',
     'surveybuilder.apps.SurveybuilderConfig',
     'surveytaker.apps.SurveyTakerConfig',
+    'emailInfo.apps.EmailInfoConfig',
     'crontab',
     'django_apscheduler',
     'django.contrib.admin',
