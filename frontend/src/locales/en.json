@@ -379,7 +379,8 @@
     "Actions": "Actions",
     "Remove": "Remove",
     "Existing Collaborators": "Existing Collaborators",
-    "Remove-collaborators": "Remove Collaborators"
+    "Remove-collaborators": "Remove Collaborators",
+    "Unread-email": "You have an invitation email pending, please check it"
   },
   "surveyTaker": {
     "Submit": "Submit",
