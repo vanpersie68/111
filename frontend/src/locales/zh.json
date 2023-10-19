@@ -369,7 +369,8 @@
     "Actions": "执行",
     "Remove": "删除",
     "Existing Collaborators": "当前协作人",
-    "Remove-collaborators": "移除协作人"
+    "Remove-collaborators": "移除协作人",
+    "Unread-email": "你有邀请邮件待处理，注意查收"
   },
 
   "surveyTaker": {
