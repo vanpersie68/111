@@ -111,7 +111,7 @@ export default {
           alert(key)
           this.$router.push({
             name: 'accept_invitation',
-            query: { key: key, surveyid: this.$route.params.surveyid },
+            query: { key: key, id: this.$route.params.surveyid, email:  this.$route.params.emailId},
           });
         } else {
           this.$router.replace({
