@@ -1,265 +1,184 @@
 <template>
-  <section>
-    <div class="invite">
-
-     <p class="title">{{ survey_name }}</p>
-
-      <div class="ui">
-        <!-- Invite box -->
-        <p class="account">{{ $t('g5.Invite Users') }}</p>
-        <img alt="" class="line" src="imagesine.png" />
-        <p class="inputbox">{{ $t('g5.Enter Email') }}</p>
-        <div>
-          <input class="email-input" type="text" v-model="inviteEmail" placeholder="Enter email" />
-        </div>
-        <div class="error">
-          <div id="invite-error-message"></div>
-        </div>
-        <img alt="" class="line" src="imagesine.png" />
-        <div>
-          <button @click="sendInvite" class="invite-button">
-            {{ $t('g5.Invite') }}
-          </button>
-        </div>
-      </div>
+  <div class="main">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Accept Invitation UI -->
+    <div class="window">
+      <p class="title">{{ $t('g5.Accept Invitation') }}</p>
+      <p class="message">{{ $t('g5.You have been invited to edit the survey')}} </p>
+      <p class="surveyname">{{ surveyname }}</p>
+      <button class="accept" @click="acceptInvitation">{{ $t('Accept') }}</button>
+      <button class="accept" @click="rejectInvitation">{{ $t('Reject') }}</button>
     </div>
-
-    <div class="space"></div>
-
-    <div class="collaborators">
-          <p class="account">{{ }}</p>
-          <form name="collaborators">
-            <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th colspan="3">{{ $t('g5.Existing Collaborators') }}</th>
-                    </tr>
-                    <tr>
-                      <th>{{ $t('g5.Username') }}</th>
-                      <th>{{ $t('g5.Email') }}</th>
-                      <th>{{ $t('g5.Actions') }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(collab, index) in collaborator" :key="index">
-                      <td>{{ collab.username }}</td>
-                      <td>{{ collab.email }}</td>
-                      <td>
-                        <button @click="removeCollaborator(collab.id)">{{ $t('g5.Remove') }}</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-            </div>
-          </form>
-      </div>
-
-    <div class="space"></div>
-  </section>
+  </div>
 </template>
 
 <script>
-import pubsub from 'pubsub-js'
-import axios from 'axios';
 import SurveyServices from '../services/SurveyServices'
 
 export default {
-  name: 'InviteUsers',
+  name: 'AcceptInvitation',
   data() {
     return {
-      survey_id: this.$route.params.id,
-      survey_name: this.$route.params.name,
-      inviteEmail: '',
-      collaborator: [], // Existing collaborators from the backend
+      key: this.$route.query.key,
+      surveyid: this.$route.query.id,
+      surveyname: '',
+      emailId: this.$route.query.email,
+      rejected: '',
+      accept: '',
     }
+  },
+  created(){
+    this.fetchSurveyName();
   },
   methods: {
-    async fetchCollaborators() {
-      SurveyServices.getCollaborators(this.survey_id)
-      .then((collaborator) => {
-        this.collaborator = collaborator;
-      })
-      .catch((error) => {
-        console.error('Error fetching collaborators:', error);
-      });
-    },
-    goToMainPage() {
-      //redirect to the user profile page
-      this.$router.push(`/My_Survey`)
-    },
-    sendInvite() {
-        const websiteUrl = process.env.VUE_APP_WEBSITE;
-        const url = `${websiteUrl}accept-invitation?token=${localStorage.getItem('token')}&id=${this.survey_id}`;
+    acceptInvitation() {
+        this.$axios
+            .get('emailInfo/get_rejected/' + this.emailId)
+            .then((response) => {
+                this.rejected = response.data.message;
+                    if(this.rejected){
+                        alert('You have rejected the invitation, cannot accept it')
+                    }else{
+                        if(this.key != 'None'){
+                            this.$axios
+                            .post('survey/add-collaborator/', {
+                              key: this.key,
+                              surveyid: this.surveyid,
+                            })
+                            .then((res) => {
+                              alert('Congratulations, you have joined the survey group');
+                            })
+                            .catch((err) => {
+                              if (err.response && err.response.data) {
+                                alert('Error: ' + err.response.data);
+                              } else {
+                                alert('Expired link!', err)
+                              }
+                              window.location.reload()
+                            })
 
-        this.$axios
-            .post('account/send-invite/', { email: this.inviteEmail,
-                                        websiteUrl: websiteUrl,
-                                        username: localStorage.getItem('username'),
-                                        surveyid: this.survey_id,
-                                        surveyname: this.survey_name})
-            .then(() => {
-                // Invitation sent successfully, show a confirmation message
-                alert('Invitation sent successfully.');
+                            this.$axios
+                            .get('emailInfo/update_accept/' + this.emailId)
+                            .then((response) => {
+
+                            })
+                            .catch((error) => {
+                            // Handle error
+                            });
+
+                      }else{
+                        alert('Please register before accepting the invitation');
+                        this.$router.push({ name: 'signup', params: { surveyid: this.surveyid, emailId: this.emailId } })
+                    }
+                }
             })
             .catch((error) => {
             // Handle error
-            alert('Failed, please check if your email is valid.', error)
-            window.location.reload()
             });
+
+
     },
-    removeCollaborator(user_id){
+
+    rejectInvitation(){
         this.$axios
-            .post('survey/collaborators/delete/', {survey_id: this.survey_id,
-                                                   user_id: user_id})
-            .then(() => {
-                alert('Delete successfully.');
-                window.location.reload()
-            })
-            .catch((error) => {
-            // Handle error
-            alert('Failed, please try again.'+error)
-            window.location.reload()
-            });
-    }
-  },
-  created() {
-    // Call the method to fetch collaborators when the component is created
-    this.fetchCollaborators();
+            .get('emailInfo/get_accept/' + this.emailId)
+            .then((response) => {
+                this.accept = response.data.message;
+                    if(this.accept){
+                        alert('You have accepted the invitation, cannot reject it')
+                    }else{
+                        if(this.key != 'None'){
+                            this.$axios
+                                .get('emailInfo/update_rejected/' + this.emailId)
+                                .then((response) => {
+                                    // Invitation sent successfully, show a confirmation message
+                                    alert(response.data.message)
+                                })
+                                .catch((error) => {
+                                    alert('Failed, please check if your email is valid.', error)
+                                });
+                        }else{
+                            alert('Please register before rejecting the invitation');
+                            this.$router.push({ name: 'signup', params: { surveyid: this.surveyid, emailId: this.emailId } })
+                        }
+                    }
+
+        });
+    },
+
+    async fetchSurveyName(){
+       const data = await SurveyServices.getSurvey(this.surveyid)
+       this.surveyname = data.name;
+    },
   },
 }
 </script>
 
 <style scoped>
-
-.title {
-  font-size: 36px; /* Adjust the font size as needed */
-  font-weight: bold;
-  text-align: center; /* Center the text horizontally */
-  margin-top: 50px; /* Adjust the top margin to center vertically */
+.main {
+  position: relative;
+  height: 800px;
 }
 
-.invite {
+.background {
+  width: 100%;
+  height: 800px;
   position: relative;
 }
 
-.space {
-  height: 40px;
-}
-
-
-.collaborator {
-  display: flex;
-  justify-content: space-between;
-  flex-basis: 45%;
-  margin: 0 auto;
-}
-
-.table-container {
-  margin: 0 auto;
-  width: 80%;
-}
-
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-
-table, th, td {
-  border: 1px solid #000;
-}
-
-th, td {
-  padding: 8px;
-  text-align: left;
-}
-
-th {
-  background-color: #f2f2f2;
-}
-
-.ui {
+.window {
   background-color: white;
   border-radius: 16px;
   padding: 20px 0 18px;
-  border: 2px solid black;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  position: relative;
-  justify-content: flex-end;
-  width: 450px;
-  margin: 0 auto;
-  margin-top: 30PX;
-  flex-basis: 45%;
+  align-items: flex-start;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 999;
 }
 
-.account {
+.title {
   font-size: 24px;
   font-weight: 700;
   line-height: normal;
   color: black;
-  margin: 0 auto;
-  text-align: center;
+  margin-bottom: 20px;
 }
-.line {
-  width: 100%;
-  margin-bottom: 15px;
+
+.surveyname {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: normal;
+  color: orange;
+  margin-bottom: 40px;
 }
-.inputbox {
+
+.message {
   width: 400px;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: normal;
   color: dimgray;
-  margin-bottom: 9px;
-}
-.email-input {
-  width: 396px;
-  height: 32px;
-  background-color: white;
-  margin-bottom: 10px;
-  border-radius: 4px;
-  border: 2px solid linen;
-}
-.error {
-  background: #ffc199; /*Change background color*/
-  border-left: 9px solid #ff6600; /*Change left border color*/
-  color: #2c3e50; /*Change text color*/
-  width: 90%;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: normal;
-  margin-bottom: 4px;
+  margin-bottom: 20px;
 }
 
-.back-button {
-  background: none;
-  border: 1px solid black;
+.accept {
+  background-color: rgba(153, 105, 15, 0.493);
   margin-bottom: 18px;
   border-radius: 8px;
-  padding: 13px 20px;
+  padding: 13px 100px;
+  display: flex;
+  align-items: center;
   font-size: 16px;
   font-weight: 400;
   line-height: normal;
 }
-.back-button:hover {
-  opacity: 0.3;
-  cursor: pointer;
-}
 
-.invite-button {
-  background: none;
-  border: 1px solid black;
-  margin-bottom: 18px;
-  border-radius: 8px;
-  padding: 13px 20px;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: normal;
-}
-.invite-button:hover {
-  opacity: 0.3;
+.accept:hover {
+  background-color: blanchedalmond;
   cursor: pointer;
 }
 </style>
