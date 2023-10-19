@@ -22,6 +22,9 @@ export default {
       key: this.$route.query.key,
       surveyid: this.$route.query.id,
       surveyname: '',
+      emailId: this.$route.query.email,
+      rejected: '',
+      accept: '',
     }
   },
   created(){
@@ -29,34 +32,78 @@ export default {
   },
   methods: {
     acceptInvitation() {
-      if(this.key != 'None'){
         this.$axios
-        .post('survey/add-collaborator/', {
-          key: this.key,
-          surveyid: this.surveyid,
-        })
-        .then((res) => {
-          alert('Congratulations, you have joined the survey group');
-        })
-        .catch((err) => {
-          if (err.response && err.response.data) {
-            alert('Error: ' + err.response.data);
-            //alert('Backend Error: ' + err.response.data);
-          } else {
-            alert('Expired link!', err)
-          }
-          // alert('Expired link!', err)
-          window.location.reload()
-        })
-      }else{
-        alert('Please register before accepting the invitation');
-        this.$router.push({ name: 'signup', params: { surveyid: this.surveyid } })
-      }
+            .get('emailInfo/get_rejected/' + this.emailId)
+            .then((response) => {
+                this.rejected = response.data.message;
+                    if(this.rejected){
+                        alert('You have rejected the invitation, cannot accept it')
+                    }else{
+                        if(this.key != 'None'){
+                            this.$axios
+                            .post('survey/add-collaborator/', {
+                              key: this.key,
+                              surveyid: this.surveyid,
+                            })
+                            .then((res) => {
+                              alert('Congratulations, you have joined the survey group');
+                            })
+                            .catch((err) => {
+                              if (err.response && err.response.data) {
+                                alert('Error: ' + err.response.data);
+                              } else {
+                                alert('Expired link!', err)
+                              }
+                              window.location.reload()
+                            })
+
+                            this.$axios
+                            .get('emailInfo/update_accept/' + this.emailId)
+                            .then((response) => {
+
+                            })
+                            .catch((error) => {
+                            // Handle error
+                            });
+
+                      }else{
+                        alert('Please register before accepting the invitation');
+                        this.$router.push({ name: 'signup', params: { surveyid: this.surveyid, emailId: this.emailId } })
+                    }
+                }
+            })
+            .catch((error) => {
+            // Handle error
+            });
+
 
     },
 
     rejectInvitation(){
-        alert('You have rejected the invitation');
+        this.$axios
+            .get('emailInfo/get_accept/' + this.emailId)
+            .then((response) => {
+                this.accept = response.data.message;
+                    if(this.accept){
+                        alert('You have accepted the invitation, cannot reject it')
+                    }else{
+                        if(this.key != 'None'){
+                            this.$axios
+                                .get('emailInfo/update_rejected/' + this.emailId)
+                                .then((response) => {
+                                    // Invitation sent successfully, show a confirmation message
+                                    alert(response.data.message)
+                                })
+                                .catch((error) => {
+                                    alert('Failed, please check if your email is valid.', error)
+                                });
+                        }else{
+                            alert('Please register before rejecting the invitation');
+                            this.$router.push({ name: 'signup', params: { surveyid: this.surveyid, emailId: this.emailId } })
+                        }
+                    }
+
+        });
     },
 
     async fetchSurveyName(){
